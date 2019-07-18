@@ -1,9 +1,13 @@
 package com.example.eslearning.controller;
 
 import com.example.eslearning.model.Novel;
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -13,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * 描述：TODO
@@ -73,4 +78,42 @@ public class EsController {
         return deleteResponse.toString();
     }
 
+    @PostMapping("update/book/novel")
+    public Object update(@RequestBody Novel novel){
+        UpdateRequest updateRequest = new UpdateRequest("book","novel",novel.getId());
+
+        try {
+            XContentBuilder xContentBuilder = XContentFactory
+                    .jsonBuilder()
+                    .startObject();
+            if(null != novel.getTitle()){
+                xContentBuilder.field("title",novel.getTitle());
+            }
+            if(null != novel.getAuthor()){
+                xContentBuilder.field("author",novel.getAuthor());
+            }
+            xContentBuilder.endObject();
+            updateRequest.doc(xContentBuilder);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            UpdateResponse updateResponse = transportClient
+                    .update(updateRequest)
+                    .get();
+
+            HashMap<String, Object> map = new HashMap<>();
+
+            map.put("code",200);
+            map.put("msg",updateResponse.getResult());
+
+             return map;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

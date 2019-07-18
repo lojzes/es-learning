@@ -8,6 +8,7 @@ package com.example.eslearning.model;
  */
 public class Novel {
 
+    private String id;
     private String title;
     private String author;
     private String publishDate;
@@ -44,5 +45,13 @@ public class Novel {
 
     public void setWordCount(int wordCount) {
         this.wordCount = wordCount;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }
