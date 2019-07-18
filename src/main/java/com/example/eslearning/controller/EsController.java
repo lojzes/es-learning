@@ -6,16 +6,27 @@ import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -116,4 +127,55 @@ public class EsController {
         }
         return null;
     }
+
+    @GetMapping("query/book/novel")
+    public Object query(@RequestParam(value = "title" ,required = false) String title,
+                        @RequestParam(value = "author",required = false) String author,
+                        @RequestParam(value = "word_count",required = false) String word_count,
+                        @RequestParam(value = "gte_word_count",defaultValue = "0") int gte_word_count,
+                        @RequestParam(value = "lte_word_count",required = false) Integer lte_word_count){
+
+
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        if(null != author){
+            boolQueryBuilder.must(QueryBuilders.matchQuery("author",author));
+        }
+
+        if(null != title){
+            boolQueryBuilder.must(QueryBuilders.matchQuery("title",title));
+        }
+
+        RangeQueryBuilder word_count1 = QueryBuilders
+                .rangeQuery("word_count")
+                .from(gte_word_count);
+
+        if(null != lte_word_count && lte_word_count >0){
+            word_count1.to(lte_word_count);
+        }
+
+        boolQueryBuilder.filter(word_count1);
+
+        SearchRequestBuilder searchRequestBuilder = transportClient.prepareSearch("book")
+                .setTypes("novel")
+                .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+                .setQuery(boolQueryBuilder)
+                .setFrom(0)
+                .setSize(10);
+
+        System.out.println("searchRequestBuilder = " + searchRequestBuilder);
+
+        SearchResponse searchResponse = searchRequestBuilder.get();
+
+        List<Map<String, Object>> maps = new ArrayList<>();
+
+        SearchHits hits = searchResponse.getHits();
+
+        for (SearchHit hist : hits) {
+            maps.add(hist.getSource());
+        }
+
+        return maps;
+    }
+
 }
