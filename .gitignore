@@ -7,6 +7,7 @@
 modules.xml
 *.idea
 *.ipr
+*.mvn
 
 # Sonarlint plugin
 .idea/sonarlint
